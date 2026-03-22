@@ -27,5 +27,13 @@ public class Stock{
         return name;
     }
 
+    @Override
+    public String toString() {
+        return String.format(
+            "%s | Name : %s | Current price : %.2f",
+            symbol, name, currentPrice
+        );
+    }
+
 
 }

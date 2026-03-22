@@ -25,7 +25,7 @@ public class Portfolio{
         // Barrière pour savoir si j'ai de quoi l'acheter
         double cost = stock.getCurrentPrice() * quantity;
         if (cost > cashAvailable){
-            System.out.println("\nYou don't have enough money for this operation.");
+            System.out.println("\n ❌ You don't have enough money for this operation.");
             return;
         }
 
@@ -47,13 +47,13 @@ public class Portfolio{
     public void Sell(Stock stock, int quantity){
         // Barrière pour savoir si j'ai de quoi vendre
         if (!holdings.containsKey(stock.getSymbol())){
-            System.out.println("\nYou can't sell a product you don't have.");
+            System.out.println("\n ❌ You can't sell a product you don't have.");
             return;
         }
 
         int quantityHeld = holdings.get(stock.getSymbol());
         if (quantityHeld < quantity){
-            System.out.println("\nYou don't have enough quantity to sell.");
+            System.out.println("\n ❌ You don't have enough quantity to sell.");
             return;
         }
 
@@ -81,4 +81,96 @@ public class Portfolio{
         }
         return totalValue;
     }
+
+    public void displayWallet() {
+        System.out.println("\n=== Wallet ===");
+
+        // Affichage du cash
+        System.out.printf("Cash available : %.2f €\n", cashAvailable);
+
+        // Si aucun stock
+        if (holdings.isEmpty()) {
+            System.out.println("No shares held.");
+            return;
+        }
+
+        System.out.println("\n Shares held :");
+        System.out.printf("%-10s %-10s\n", "Symbol", "Quantity");
+
+        for (Map.Entry<String, Integer> entry : holdings.entrySet()) {
+            String symbol = entry.getKey();
+            int quantity = entry.getValue();
+
+            System.out.printf("%-10s %-10d\n", symbol, quantity);
+        }
+    }
+
+    public void displayHistory() {
+        System.out.println("\n=== History ===");
+
+        // Si aucun stock
+        if (history.isEmpty()) {
+            System.out.println("You did not BUY/SELL anything yet.");
+            return;
+        }
+
+        System.out.printf("%-6s %-10s %-10s %-10s %-20s\n",
+        "Type", "Symbol", "Quantity", "Price at execution", "Date");
+
+    for (Order o : history) {
+        System.out.printf("%-6s %-10s %-10d %-10.2f %-20s\n",
+            o.getType(),
+            o.getSymbol(),
+            o.getQuantity(),
+            o.getPrice(),
+            o.getDate().toString()
+        );
+    }
+
+    public void saveToFile(String email) {
+        Gson gson = new GsonBuilder()
+            .setPrettyPrinting()
+            .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+            .create();
+
+        try {
+            File dir = new File("portfolios");
+            if (!dir.exists()) dir.mkdir();
+
+            FileWriter writer = new FileWriter("portfolios/" + email + ".json");
+            gson.toJson(this, writer);
+            writer.close();
+
+            System.out.println("Portfolio saved successfully.");
+        } catch (Exception e) {
+            System.out.println("❌ Error saving portfolio.");
+        }
+    }
+
+    public static Portfolio loadFromFile(String email) {
+        Gson gson = new GsonBuilder()
+            .registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+            .create();
+
+        try {
+            File file = new File("portfolios/" + email + ".json");
+            if (!file.exists()) {
+                System.out.println("No portfolio found, creating a new one.");
+                return new Portfolio(1000); // cash initial
+            }
+
+            FileReader reader = new FileReader(file);
+            Portfolio p = gson.fromJson(reader, Portfolio.class);
+            reader.close();
+
+            System.out.println("Portfolio loaded successfully.");
+            return p;
+
+        } catch (Exception e) {
+            System.out.println("❌ Error loading portfolio, creating a new one.");
+            return new Portfolio(1000);
+        }
+    }
+
+
 }
