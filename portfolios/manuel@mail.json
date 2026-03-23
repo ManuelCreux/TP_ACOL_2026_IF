@@ -1,0 +1,22 @@
+{
+  "cashAvailable": 10127.033229300336,
+  "holdings": {
+    "AMZN": 0
+  },
+  "history": [
+    {
+      "type": "BUY",
+      "symbol": "AMZN",
+      "quantity": 4,
+      "priceAtExecution": 105.31167882011607,
+      "dateTime": "2026-03-23T15:59:03.611361"
+    },
+    {
+      "type": "SELL",
+      "symbol": "AMZN",
+      "quantity": 4,
+      "priceAtExecution": 137.0699861452001,
+      "dateTime": "2026-03-23T16:35:10.651370"
+    }
+  ]
+}
