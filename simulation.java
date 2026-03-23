@@ -1,4 +1,3 @@
-import java.sql.*;
 import java.util.*;
 
 public class simulation {
@@ -7,92 +6,44 @@ public class simulation {
     private static final String MASTER_IDENTIFIER = "master@market.com";
     private static final String MASTER_PASSWORD = "1";
 
-    // Connexion globale accessible par toutes les fonctions
-    private static Connection conn;
+    private static PlayersList players = new PlayersList();
+    private static Market market = new Market();
+    private static Player currentPlayer;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-
-        // On récupère les données du marché enregistrés à la dernière connexion
-        public static List<Stock> loadMarket() throws IOException {
-            List<Stock> stocks = new ArrayList<>();
-            BufferedReader br = new BufferedReader(new FileReader("market.json"));
-            String line;
-
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(";");
-                stocks.add(new Stock(parts[0], Double.parseDouble(parts[1])));
-            }
-
-            br.close();
-            return stocks;
-        }
-
-        // On récupère la liste des joueurs et leurs données de connexion
-        public static List<Player> loadPlayers() {
-            List<Player> players = new ArrayList<>();
-
-            try (BufferedReader br = new BufferedReader(new FileReader("players.txt"))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String[] parts = line.split(";");
-                    if (parts.length == 2) {
-                        players.add(new Player(parts[0], parts[1]));
-                    }
-                }
-            } catch (Exception e) {
-                System.out.println("Aucun fichier de joueurs trouvé, création d'une nouvelle liste.");
-            }
-
-            return players;
-        }
-
-
-        Market market = new Market(stocks);
         market.startAutoUpdate();
 
         System.out.println("Welcome to the stock market simulation  !");
-        int profil = 0;
+        int choix = 0;
         do {
             System.out.println("\nYou are :");
             System.out.println("1. Master");
             System.out.println("2. Player");
             System.out.println("3. Leave");
             System.out.print("Your choice : ");
-            try {
-                profil = scanner.nextInt();
+
+
+            try{
+                choix = scanner.nextInt();
                 scanner.nextLine();
-
-                // Ouverture de la connexion globale
-                conn = DriverManager.getConnection(CONN_URL, USER, PASSWD);
-                conn.setAutoCommit(false);
-
-                if (profil == 1) {
-                    if (!authentifierMaster(scanner)) {
-                        System.out.println("❌ Access denied");
-                        return;
-                    }
-                    menuMaster(scanner);
-
-                } else if (profil == 2) {
-                    menuPlayer(scanner);
-                } else if (profil == 3){
-                    System.out.println("See you soon !");
-                } else {
-                    System.out.println("Invalid choice.");
+    
+                switch (choix) {
+                    case 1 -> if (!authentifierMaster(scanner)) {
+                                System.out.println("❌ Access denied");
+                                return;
+                            }
+                            menuMaster(scanner);
+                    case 2 -> menuPlayer(scanner);
+                    case 3 -> System.out.println("See you soon !");
+                    default -> System.out.println("Invalid Choice.");
                 }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } catch(Exception e){
+            } catch (Exception e) {
                 System.out.println("❌ Error, try again");
                 scanner.nextLine();
-            }finally {
-                try { if (conn != null) conn.close(); } catch (Exception ignored) {}
             }
-        } while (profil != 4);
 
-        scanner.close();
+        } while (choix != 3);
     }
 
     // Authentification du master
@@ -126,7 +77,8 @@ public class simulation {
             System.out.println("3. Display available market stocks");
             System.out.println("4. Display player accounts");
             System.out.println("5. Delete an account");
-            System.out.println("6. Leave");
+            System.out.println("6. Change a price");
+            System.out.println("7. Leave");
             System.out.print("Your choice : ");
 
             try{
@@ -135,11 +87,12 @@ public class simulation {
     
                 switch (choix) {
                     case 1 -> addStock(scanner, market);
-                    case 2 -> removeStock(scanner);
-                    case 3 -> displayMarketStock(scanner);
-                    case 4 -> displayPlayerAccounts(scanner);
-                    case 5 -> deleteAccount(scanner);
-                    case 6 -> System.out.println("See you soon !");
+                    case 2 -> removeStock(scanner, market);
+                    case 3 -> displayMarketStock(scanner, market);
+                    case 4 -> displayPlayerAccounts(scanner, players);
+                    case 5 -> deleteAccount(scanner, players);
+                    case 6 -> changePrice(scanner, market);
+                    case 7 -> System.out.println("See you soon !");
                     default -> System.out.println("Invalid Choice.");
                 }
             } catch (Exception e) {
@@ -147,13 +100,13 @@ public class simulation {
                 scanner.nextLine();
             }
 
-        } while (choix != 6);
+        } while (choix != 7);
     }
 
     
 
     // Menu Player
-    private static void menuPlayeur(Scanner scanner) {
+    private static void menuPlayer(Scanner scanner) {
         System.out.println("\n--- Player Actions ---");
         System.out.println("1. Log in with an existing email");
         System.out.println("2. Create a new account");
@@ -164,15 +117,17 @@ public class simulation {
     
         switch (choixConnexion) {
             case 1 -> {
-                if (!playerConnexion(scanner)) {
+                currentPlayer = playerConnexion(scanner, players);
+                if (currentPlayer == null) {
                     System.out.println("❌ Connexion failed");
                     return;
                 }
-                mainMenuPlayer(scanner);
+                mainMenuPlayer(scanner, currentPlayer);
             }
             case 2 -> {
-                if (createAccount(scanner)) {
-                    mainMenuPlayer(scanner);
+                currentPlayer = createAccount(scanner, players);
+                if (currentPlayer != null) {
+                    mainMenuPlayer(scanner, currentPlayer);
                 }
             }
             case 3 -> System.out.println("See you soon !");
@@ -181,14 +136,14 @@ public class simulation {
     }
     
     
-    public static Player playerConnexion(Scanner scanner, List<Player> players) {
+    public static Player playerConnexion(Scanner scanner, PlayersList players) {
         System.out.print("Email : ");
         String email = scanner.nextLine();
 
         System.out.print("Password : ");
         String mdp = scanner.nextLine();
 
-        for (Player p : players) {
+        for (Player p : players.getPlayers()) {
             if (p.getEmail().equals(email) && p.getPassword().equals(mdp)) {
                 System.out.println("✅ Connexion successful !");
                 return p;
@@ -200,15 +155,15 @@ public class simulation {
     }
     
     // Nouvelle méthode pour créer un compte
-    public static void createAccount(Scanner scanner, List<Player> players) {
+    public static Player createAccount(Scanner scanner, PlayersList players) {
         System.out.print("Email : ");
         String email = scanner.nextLine();
 
         // Vérifier si l'email existe déjà
-        for (Player p : players) {
+        for (Player p : players.getPlayers()) {
             if (p.getEmail().equals(email)) {
                 System.out.println("❌ This email address is already in use.");
-                return;
+                return null;
             }
         }
 
@@ -216,48 +171,38 @@ public class simulation {
         String mdp = scanner.nextLine();
 
         Player newPlayer = new Player(email, mdp);
-        players.add(newPlayer);
-        savePlayer(newPlayer);
-
+        players.addPlayer(newPlayer);
         System.out.println("✅ Account created successfully !");
+        return newPlayer;
     }
     
     // Nouvelle méthode pour supprimer un compte
-    public static void deleteAccount(Scanner scanner, List<Player> players) {
+    public static void deleteAccount(Scanner scanner, PlayersList players) {
         System.out.print("Email address to delete : ");
         String email = scanner.nextLine();
 
         System.out.print("Password : ");
-        String mdp = scanner.nextLine();
+        String password = scanner.nextLine();
 
-        Player joueurASupprimer = null;
-
-        for (Player p : players) {
-            if (p.getEmail().equals(email) && p.getPassword().equals(mdp)) {
-                joueurASupprimer = p;
-                break;
-            }
-        }
+        Player joueurASupprimer = players.findPlayer(email, password);
 
         if (joueurASupprimer == null) {
             System.out.println("❌ No account matches these credentials..");
             return;
         }
 
-        players.remove(joueurASupprimer);
-        saveAllPlayers(players);
-
+        players.removePlayer(joueurASupprimer);
         System.out.println("Account deleted successfully.");
     }
 
     
     // Menu Player
-    private static void mainMenuPlayer(Scanner scanner) {
+    private static void mainMenuPlayer(Scanner scanner, Player currentPlayer) {
         int choix = 0;
-        Portfolio portfolio = Portfolio.loadFromFile(player.getEmail());
+        Portfolio portfolio = currentPlayer.getPortfolio();
     
         do {
-            System.out.println("\n--- Main Menu (" + emailClientConnecte + ") ---");
+            System.out.println("\n--- Main Menu  ---");
             System.out.println("1. Display market stocks");
             System.out.println("2. BUY a stock");
             System.out.println("3. SELL a stock");
@@ -272,16 +217,15 @@ public class simulation {
                 scanner.nextLine();
         
                 switch (choix) {
-                    case 1 -> displayMarketStock(market);
+                    case 1 -> displayMarketStock(scanner, market);
                     case 2 -> buyStock(scanner, market, portfolio);
-                    case 3 -> sellStock(scanner);
-                    case 4 -> displayCashHoldings(scanner,idClientConnecte);
-                    case 5 -> displayHistory(scanner);
-                    case 6 -> displayWalletValue(scanner);
+                    case 3 -> sellStock(scanner, market, portfolio);
+                    case 4 -> displayCashHoldings(scanner, currentPlayer);
+                    case 5 -> displayHistory(scanner, currentPlayer);
+                    case 6 -> displayWalletValue(scanner, currentPlayer);
                     case 7 -> {
                         System.out.println("Deconnexion...");
-                        emailClientConnecte = null;
-                        idClientConnecte = 0;
+                        currentPlayer.getPortfolio().saveToFile(currentPlayer.getEmail());
                     }
                     default -> System.out.println("Invalid Choice.");
                 }
@@ -294,7 +238,7 @@ public class simulation {
     }
 
     // Catalogue
-    public static void displayMarketStock(Market market) {
+    public static void displayMarketStock(Scanner scanner, Market market) {
         System.out.println("\n=== Shares available on the market ===");
 
         for (Stock s : market.getStocks()) {
@@ -419,4 +363,84 @@ public class simulation {
         System.out.println("✅ Stock added successfully : " + symbol + " (" + name + ")");
     }
 
+    private static void removeStock(Scanner scanner, Market market) {
+        System.out.println("\n--- Removing a stock ---");
+
+        // Demander le symbole
+        System.out.print("\nEnter the stock symbol you want to remove : ");
+        String symbol = scanner.nextLine().toUpperCase();
+
+        // Vérifier que le symbole existe déjà sur le marché
+        Stock stock = market.getStock(symbol);
+        if (stock == null) {
+            System.out.println("❌ This action doesn't exists.");
+            return;
+        }
+
+        // Ajouter au market
+        market.removeMarketStock(symbol);
+        System.out.println("✅ Stock removed successfully : " + symbol);
+    }
+
+    public static void displayPlayerAccounts(Scanner scanner, PlayersList players){
+        System.out.println("\n--- List of players with their mail and password ---");
+        
+        for (Player p : players.getPlayers()) {
+            System.out.println(p.playerPrinter());
+        }
+    }
+
+    private static void changePrice(Scanner scanner, Market market) {
+        System.out.println("\n--- Price change ---");
+
+        // Demander le symbole
+        System.out.print("\nEnter the stock symbol you want to change : ");
+        String symbol = scanner.nextLine().toUpperCase();
+
+        // Vérifier que le symbole existe déjà sur le marché
+        Stock stock = market.getStock(symbol);
+        if (stock == null) {
+            System.out.println("❌ This action doesn't exists.");
+            return;
+        }
+
+        // Demander le nouveau prix
+        System.out.print("\nEnter the new price of this stock : ");
+        double price;
+        try {
+            price = Double.parseDouble(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("❌ Invalid price format.");
+            return;
+        }
+
+        // Vérifier que le prix est positif
+        if (price <= 0) {
+            System.out.println("❌ The price must be positive.");
+            return;
+        }
+
+        // On récupère le nom
+        String name = stock.getName();
+
+        // Modifier le prix
+        stock.setCurrentPrice(price);
+        System.out.println("✅ Stock price successfully modified: " + symbol);
+    }
+
+
+    public static void displayCashHoldings(Scanner scanner, Player player){
+        Portfolio portfolio = player.getPortfolio();
+        portfolio.displayWallet();
+    }
+
+    public static void displayHistory(Scanner scanner, Player player){
+        Portfolio portfolio = player.getPortfolio();
+        portfolio.displayHistory();
+    }
+
+    public static void displayWalletValue(Scanner scanner, Player player){
+        Portfolio portfolio = player.getPortfolio();
+        portfolio.printTotalValue();
+    }
 }

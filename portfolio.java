@@ -67,7 +67,8 @@ public class Portfolio{
         history.add(new Order("SELL",  stock.getSymbol(), quantity,  stock.getCurrentPrice(), LocalDateTime.now()));
     }
 
-    public double getTotalValue(Market market) {
+    public void printTotalValue(Market market){
+        System.out.println("\n=== Total Wallet Value ===");
         double totalValue = cashAvailable;
 
         for (Map.Entry<String, Integer> entry : holdings.entrySet()) {
@@ -79,7 +80,8 @@ public class Portfolio{
                 totalValue += s.getCurrentPrice() * quantity;
             }
         }
-        return totalValue;
+        // Affichage du cash
+        System.out.printf("Total Wallet Value : %.2f €\n", totalValue);
     }
 
     public void displayWallet() {
@@ -117,14 +119,15 @@ public class Portfolio{
         System.out.printf("%-6s %-10s %-10s %-10s %-20s\n",
         "Type", "Symbol", "Quantity", "Price at execution", "Date");
 
-    for (Order o : history) {
-        System.out.printf("%-6s %-10s %-10d %-10.2f %-20s\n",
-            o.getType(),
-            o.getSymbol(),
-            o.getQuantity(),
-            o.getPrice(),
-            o.getDate().toString()
-        );
+        for (Order o : history) {
+            System.out.printf("%-6s %-10s %-10d %-10.2f %-20s\n",
+                o.getType(),
+                o.getSymbol(),
+                o.getQuantity(),
+                o.getPrice(),
+                o.getDate().toString()
+            );
+        }
     }
 
     public void saveToFile(String email) {
@@ -156,7 +159,7 @@ public class Portfolio{
             File file = new File("portfolios/" + email + ".json");
             if (!file.exists()) {
                 System.out.println("No portfolio found, creating a new one.");
-                return new Portfolio(1000); // cash initial
+                return new Portfolio(10000); // cash initial
             }
 
             FileReader reader = new FileReader(file);
@@ -168,7 +171,7 @@ public class Portfolio{
 
         } catch (Exception e) {
             System.out.println("❌ Error loading portfolio, creating a new one.");
-            return new Portfolio(1000);
+            return new Portfolio(10000);
         }
     }
 

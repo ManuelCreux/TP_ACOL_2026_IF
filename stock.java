@@ -35,5 +35,9 @@ public class Stock{
         );
     }
 
+    public void setNewPrice(double newPrice){
+        this.currentPrice = newPrice;
+    }
+
 
 }
