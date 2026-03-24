@@ -54,7 +54,7 @@ public class PlayersList {
                 }
             }
         } catch (Exception e) {
-            System.out.println("No players file found, starting empty.");
+            System.out.println("❌ No players file found, starting empty.");
         }
 
         return list;
@@ -66,7 +66,7 @@ public class PlayersList {
                 pw.println(p.getEmail() + ";" + p.getPassword());
             }
         } catch (Exception e) {
-            System.out.println("Error saving players.");
+            System.out.println("❌ Error saving players.");
         }
     }
 }

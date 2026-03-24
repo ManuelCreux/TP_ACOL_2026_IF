@@ -60,7 +60,7 @@ public class Market {
     public Boolean removeMarketStock(String symbol){
         // Vérifier si l'action existe déjà
         if (getStock(symbol) == null) {
-            System.out.println("❌ This stock already exists.");
+            System.out.println("❌ This stock does not exists.");
             return false;
         }
 
@@ -82,7 +82,7 @@ public class Market {
                 }
             }
         } catch (Exception e) {
-            System.out.println("No market file found, starting empty.");
+            System.out.println("❌ No market file found, starting empty.");
         }
 
         return stocks;
@@ -95,7 +95,7 @@ public class Market {
                 pw.println(s.getSymbol() + ";" + s.getName() + ";" + s.getCurrentPrice());
             }
         } catch (Exception e) {
-            System.out.println("Error saving market.");
+            System.out.println("❌ Error saving market.");
         }
     }
 

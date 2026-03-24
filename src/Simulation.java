@@ -186,7 +186,7 @@ public class Simulation {
         Player joueurASupprimer = players.findPlayer(email, password);
 
         if (joueurASupprimer == null) {
-            System.out.println("❌ No account matches these credentials..");
+            System.out.println("❌ No account matches these credentials.");
             return;
         }
 
@@ -385,7 +385,7 @@ public class Simulation {
         // Vérifier que le symbole existe déjà sur le marché
         Stock stock = market.getStock(symbol);
         if (stock == null) {
-            System.out.println("❌ This action doesn't exists.");
+            System.out.println("❌ This action does not exists.");
             return;
         }
 
